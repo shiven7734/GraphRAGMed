@@ -12,12 +12,26 @@ EMB_MODEL = os.getenv("EMB_MODEL", "all-MiniLM-L6-v2")
 CSV_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "drug_data.csv")
 
 def build_faiss():
-    os.makedirs(os.path.dirname(FAISS_INDEX_PATH), exist_ok=True)
+    # Ensure vectorstore directory exists
+    index_dir = os.path.dirname(FAISS_INDEX_PATH)
+    os.makedirs(index_dir, exist_ok=True)
+    
+    print(f"📁 Using vectorstore directory: {index_dir}")
+    
+    # Load and prepare data
+    if not os.path.exists(CSV_PATH):
+        raise FileNotFoundError(
+            f"Data file not found: {CSV_PATH}\n"
+            "Please ensure drug_data.csv is present in the data directory."
+        )
+        
     df = pd.read_csv(CSV_PATH)
     facts = []
     for _, r in df.iterrows():
         fact = f"{r['Drug']} {r['Relation'].replace('_',' ')} {r['Target']}. {r.get('Note','')}"
         facts.append(fact)
+        
+    # Initialize model and compute embeddings
     model = SentenceTransformer(EMB_MODEL)
     print("⏳ Computing embeddings...")
     embeddings = model.encode(facts, show_progress_bar=True, convert_to_numpy=True)

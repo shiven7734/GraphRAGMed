@@ -1,5 +1,8 @@
 # vectorstore/retriever.py
-import pickle, numpy as np, faiss
+import os
+import pickle
+import numpy as np
+import faiss
 from sentence_transformers import SentenceTransformer
 from utils.config import FAISS_INDEX_PATH, FACTS_PICKLE, EMB_MODEL, TOP_K
 from utils.utils import normalize
@@ -26,13 +29,33 @@ class Retriever:
             import torch
             if torch.cuda.is_available():
                 self.model = self.model.to(torch.device("cuda"))
+                
+            # Check if index and facts exist
+            if not os.path.exists(FAISS_INDEX_PATH) or not os.path.exists(FACTS_PICKLE):
+                print("⏳ FAISS index or facts not found. Building them...")
+                from .ingest_embeddings import build_faiss
+                build_faiss()
 
             # Load FAISS index
-            self.index = faiss.read_index(FAISS_INDEX_PATH)
+            try:
+                self.index = faiss.read_index(FAISS_INDEX_PATH)
+            except Exception as e:
+                raise RuntimeError(
+                    f"Failed to load FAISS index from {FAISS_INDEX_PATH}. "
+                    "Please ensure the vectorstore is properly initialized by running: "
+                    "python -m vectorstore.ingest_embeddings"
+                ) from e
 
             # Load facts
-            with open(FACTS_PICKLE, "rb") as f:
-                self.facts = pickle.load(f)
+            try:
+                with open(FACTS_PICKLE, "rb") as f:
+                    self.facts = pickle.load(f)
+            except Exception as e:
+                raise RuntimeError(
+                    f"Failed to load facts from {FACTS_PICKLE}. "
+                    "Please ensure the vectorstore is properly initialized by running: "
+                    "python -m vectorstore.ingest_embeddings"
+                ) from e
 
         except NotImplementedError as e:
             msg = str(e)

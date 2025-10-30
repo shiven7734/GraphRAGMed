@@ -42,7 +42,44 @@ python vectorstore/ingest_embeddings.py
 streamlit run app/app.py
 ```
 
-## Notes
+## Deployment
+
+1. Set up environment variables in your deployment environment:
+   ```bash
+   # Required
+   NEO4J_URI=your-neo4j-uri
+   NEO4J_USER=your-neo4j-user
+   NEO4J_PASS=your-neo4j-password
+   OPENAI_API_KEY=your-openai-key
+
+   # Optional with defaults
+   FAISS_INDEX_PATH=medintel_plus/vectorstore/med_faiss.index
+   FACTS_PICKLE=medintel_plus/vectorstore/med_facts.pkl
+   LLM_BACKEND=openai
+   OLLAMA_URL=http://localhost:11434
+   OLLAMA_MODEL=mistral
+   ```
+
+2. Initialize the vectorstore:
+   ```bash
+   python -m vectorstore.ingest_embeddings
+   ```
+   This will create the FAISS index and facts pickle file in the specified locations.
+
+3. Initialize the knowledge graph:
+   ```bash
+   python -m graph.graph_build
+   ```
+   This will populate your Neo4j database with the medical knowledge graph.
+
+4. Start the application:
+   ```bash
+   streamlit run app/app.py
+   ```
+
+Note: The app will automatically rebuild the vectorstore if the index files are missing.
+
+# Notes
 - This is a demo; always recommend clinician verification.
 - For offline demo, use Ollama and set LLM_BACKEND=ollama.
 
