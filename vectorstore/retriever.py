@@ -100,32 +100,58 @@ class Retriever:
                 from .ingest_embeddings import build_faiss
                 build_faiss()
 
+            # Print environment information for debugging
+            print("\n🔍 Environment Information:")
+            print(f"Working Directory: {os.getcwd()}")
+            print(f"Project Root: {os.getenv('PROJECT_ROOT', 'Not Set')}")
+            print(f"FAISS Index Path: {FAISS_INDEX_PATH}")
+            print(f"Absolute FAISS Path: {os.path.abspath(FAISS_INDEX_PATH)}\n")
+            
             # Ensure vectorstore directory exists
             vectorstore_dir = os.path.dirname(FAISS_INDEX_PATH)
             if not os.path.exists(vectorstore_dir):
                 os.makedirs(vectorstore_dir, exist_ok=True)
                 print(f"📁 Created vectorstore directory at {vectorstore_dir}")
             
+            # Check if the index exists at absolute or relative path
+            abs_index_path = os.path.abspath(FAISS_INDEX_PATH)
+            rel_index_path = os.path.join("vectorstore", "med_faiss.index")
+            
+            # Determine which path to use
+            index_path = None
+            if os.path.exists(FAISS_INDEX_PATH):
+                index_path = FAISS_INDEX_PATH
+            elif os.path.exists(abs_index_path):
+                index_path = abs_index_path
+            elif os.path.exists(rel_index_path):
+                index_path = rel_index_path
+            
+            if index_path is None:
+                raise RuntimeError(
+                    "FAISS index not found. Attempted paths:\n"
+                    f"1. Config path: {FAISS_INDEX_PATH}\n"
+                    f"2. Absolute path: {abs_index_path}\n"
+                    f"3. Relative path: {rel_index_path}\n\n"
+                    "Please ensure the vectorstore is properly initialized by running:\n"
+                    "python -m vectorstore.ingest_embeddings"
+                )
+            
             # Load FAISS index
             try:
-                print(f"📂 Loading FAISS index from {FAISS_INDEX_PATH}")
-                self.index = safe_faiss_load(FAISS_INDEX_PATH)
+                print(f"📂 Loading FAISS index from {index_path}")
+                self.index = safe_faiss_load(index_path)
                 print("✅ FAISS index loaded successfully")
             except Exception as e:
-                if not os.path.exists(FAISS_INDEX_PATH):
-                    raise RuntimeError(
-                        f"FAISS index not found at {FAISS_INDEX_PATH}. "
-                        "Please ensure the vectorstore is properly initialized by running: "
-                        "python -m vectorstore.ingest_embeddings\n\n"
-                        f"Full path attempted: {os.path.abspath(FAISS_INDEX_PATH)}"
-                    ) from e
-                else:
-                    raise RuntimeError(
-                        f"Failed to load FAISS index: {str(e)}. "
-                        "This might be due to incompatible CPU instructions. "
-                        "Try rebuilding the index on the deployment machine by running: "
-                        "python -m vectorstore.ingest_embeddings"
-                    ) from e
+                raise RuntimeError(
+                    f"Failed to load FAISS index from {index_path}\n"
+                    f"Error: {str(e)}\n\n"
+                    "This might be due to:\n"
+                    "1. Missing or corrupted index file\n"
+                    "2. Incompatible CPU instructions\n"
+                    "3. Insufficient permissions\n\n"
+                    "Try rebuilding the index by running:\n"
+                    "python -m vectorstore.ingest_embeddings"
+                ) from e
 
             # Load facts
             try:
