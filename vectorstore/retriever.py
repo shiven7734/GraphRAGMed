@@ -8,6 +8,56 @@ from utils.config import FAISS_INDEX_PATH, FACTS_PICKLE, EMB_MODEL, TOP_K
 from utils.utils import normalize
 from graph.graph_queries import find_entity_nodes_by_name, get_direct_relations
 
+def get_faiss_cpu_index(index_path):
+    """Load a FAISS index and ensure it runs on CPU."""
+    try:
+        # Try loading with standard FAISS (non-AVX2)
+        import faiss.swigfaiss as cpu_faiss
+        
+        # Try direct CPU load
+        try:
+            print("🔄 Attempting direct CPU index load")
+            index = cpu_faiss.read_index(index_path)
+        except Exception as e1:
+            print(f"⚠️ Direct CPU load failed: {str(e1)}")
+            # Try loading normally then converting
+            print("🔄 Trying load-then-convert approach")
+            index = faiss.read_index(index_path)
+            if faiss.get_num_gpus() > 0:
+                print("🔄 Converting GPU index to CPU version")
+                index = faiss.index_gpu_to_cpu(index)
+        
+        return index
+    except Exception as e:
+        raise RuntimeError(
+            f"Failed to load FAISS index in CPU mode: {str(e)}\n"
+            "This may indicate incompatible CPU instructions or a corrupted index."
+        )
+
+def safe_faiss_load(index_path):
+    """Safely load a FAISS index with fallbacks."""
+    try:
+        # First try normal load using AVX2
+        try:
+            from faiss import swigfaiss_avx2 as swigfaiss
+        except ImportError:
+            print("⚠️ AVX2 FAISS not available, falling back to standard FAISS")
+            from faiss import swigfaiss
+        
+        try:
+            return faiss.read_index(index_path)
+        except Exception as e:
+            print(f"⚠️ Initial FAISS load failed: {str(e)}")
+            print("🔄 Attempting CPU-only version...")
+            return get_faiss_cpu_index(index_path)
+    except Exception as e:
+        print(f"❌ All FAISS loading attempts failed: {str(e)}")
+        raise RuntimeError(
+            "Failed to load FAISS index with both AVX2 and CPU methods. "
+            "Try rebuilding the index on the deployment machine: "
+            "python -m vectorstore.ingest_embeddings"
+        ) from e
+
 # Simple context compressor (keep highest scoring snippets and shorten them)
 def compress_snippets(snippets, max_chars=1500):
     # naive compressor: join until limit
@@ -52,13 +102,23 @@ class Retriever:
 
             # Load FAISS index
             try:
-                self.index = faiss.read_index(FAISS_INDEX_PATH)
+                print(f"📂 Loading FAISS index from {FAISS_INDEX_PATH}")
+                self.index = safe_faiss_load(FAISS_INDEX_PATH)
+                print("✅ FAISS index loaded successfully")
             except Exception as e:
-                raise RuntimeError(
-                    f"Failed to load FAISS index from {FAISS_INDEX_PATH}. "
-                    "Please ensure the vectorstore is properly initialized by running: "
-                    "python -m vectorstore.ingest_embeddings"
-                ) from e
+                if not os.path.exists(FAISS_INDEX_PATH):
+                    raise RuntimeError(
+                        f"FAISS index not found at {FAISS_INDEX_PATH}. "
+                        "Please ensure the vectorstore is properly initialized by running: "
+                        "python -m vectorstore.ingest_embeddings"
+                    ) from e
+                else:
+                    raise RuntimeError(
+                        f"Failed to load FAISS index: {str(e)}. "
+                        "This might be due to incompatible CPU instructions. "
+                        "Try rebuilding the index on the deployment machine by running: "
+                        "python -m vectorstore.ingest_embeddings"
+                    ) from e
 
             # Load facts
             try:
