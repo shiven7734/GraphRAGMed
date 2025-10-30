@@ -1,0 +1,28 @@
+Drug,Relation,Target,Note
+Metformin,treats,Diabetes,Used in Type 2 DM
+Metformin,contraindicated_in,Kidney Disease,Risk of lactic acidosis in severe renal impairment
+Aspirin,treats,Pain,Analgesic and antiplatelet in low dose
+Aspirin,interacts_with,Warfarin,Increased bleeding risk when combined
+Warfarin,treats,Blood Clots,Anticoagulant
+Warfarin,contraindicated_in,Pregnancy,Teratogenic risk
+Paracetamol,treats,Fever,Safer analgesic for stomach
+Ibuprofen,treats,Inflammation,NSAID
+Ibuprofen,contraindicated_in,Stomach Ulcer,Can worsen gastric bleeding
+
+Lisinopril,treats,Hypertension,First-line antihypertensive
+Lisinopril,interacts_with,Potassium Supplements,May cause hyperkalemia
+Lisinopril,side_effect,Cough,Common ACE inhibitor side effect
+Atorvastatin,treats,High Cholesterol,Statin class
+Atorvastatin,side_effect,Muscle Pain,Monitor for myopathy
+Metformin,side_effect,Gastrointestinal Upset,Common but usually mild
+Metformin,interacts_with,Alcohol,Increases risk of lactic acidosis
+Insulin,treats,Type 1 Diabetes,Essential for T1DM
+Insulin,interacts_with,Oral Hypoglycemics,Monitor for hypoglycemia
+Amlodipine,treats,Hypertension,Calcium channel blocker
+Amlodipine,side_effect,Ankle Swelling,Common vasodilator effect
+Amoxicillin,treats,Bacterial Infection,Broad-spectrum antibiotic
+Amoxicillin,side_effect,Allergic Reaction,Watch for rash/anaphylaxis
+Amoxicillin,contraindicated_in,Penicillin Allergy,Serious allergic risk
+Clopidogrel,interacts_with,Omeprazole,Reduces antiplatelet effect
+Clopidogrel,treats,Heart Attack,Prevents secondary events
+Clopidogrel,side_effect,Bleeding,Monitor for bruising

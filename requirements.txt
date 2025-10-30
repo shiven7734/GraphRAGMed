@@ -1,0 +1,17 @@
+streamlit
+neo4j
+sentence-transformers>=2.2.2
+faiss-cpu
+pyvis
+python-dotenv
+openai
+requests
+pandas
+tqdm
+networkx
+plotly
+python-multipart
+Pillow
+gtts
+SpeechRecognition
+unidecode
