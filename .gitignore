@@ -1,11 +1,47 @@
+# Virtual Environment
 venv/
+env/
+.env/
+.venv/
+ENV/
+
+# Python
 __pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+bin/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib64/
+*.pkl
+*.index
+
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Operating System
+.DS_Store
+Thumbs.db
+
+# Project specific
+medintel_plus/vectorstore/
+vectorstore/
+*.pkl
+*.index
 *.pyc
 *.pyo
 *.pyd
 .Python
-.env
-.venv
-env/
-ENV/
 *.log
