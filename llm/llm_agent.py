@@ -5,9 +5,14 @@ import openai
 from llm.prompts import SYSTEM, TEMPLATE
 
 # LLM backend & settings
+from dotenv import load_dotenv
+import os
+load_dotenv()
+
 LLM_BACKEND = "ollama"  # default backend
-# OPENAI_API_KEY = "your-openai-api-key"
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # Get from environment variable
 OLLAMA_MODEL = "mistral"
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")  # Default Ollama URL
 TOP_K = 5
 GRAPH_HOPS = 2
 
