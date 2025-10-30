@@ -100,6 +100,12 @@ class Retriever:
                 from .ingest_embeddings import build_faiss
                 build_faiss()
 
+            # Ensure vectorstore directory exists
+            vectorstore_dir = os.path.dirname(FAISS_INDEX_PATH)
+            if not os.path.exists(vectorstore_dir):
+                os.makedirs(vectorstore_dir, exist_ok=True)
+                print(f"📁 Created vectorstore directory at {vectorstore_dir}")
+            
             # Load FAISS index
             try:
                 print(f"📂 Loading FAISS index from {FAISS_INDEX_PATH}")
@@ -110,7 +116,8 @@ class Retriever:
                     raise RuntimeError(
                         f"FAISS index not found at {FAISS_INDEX_PATH}. "
                         "Please ensure the vectorstore is properly initialized by running: "
-                        "python -m vectorstore.ingest_embeddings"
+                        "python -m vectorstore.ingest_embeddings\n\n"
+                        f"Full path attempted: {os.path.abspath(FAISS_INDEX_PATH)}"
                     ) from e
                 else:
                     raise RuntimeError(
