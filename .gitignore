@@ -36,10 +36,10 @@ lib64/
 Thumbs.db
 
 # Project specific
-medintel_plus/vectorstore/
-vectorstore/
-*.pkl
-*.index
+medintel_plus/vectorstore/*.pkl
+medintel_plus/vectorstore/*.index
+vectorstore/*.pkl
+vectorstore/*.index
 *.pyc
 *.pyo
 *.pyd
