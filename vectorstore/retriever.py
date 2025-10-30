@@ -4,7 +4,7 @@ import pickle
 import numpy as np
 import faiss
 from sentence_transformers import SentenceTransformer
-from utils.config import FAISS_INDEX_PATH, FACTS_PICKLE, EMB_MODEL, TOP_K
+from utils.config import FAISS_INDEX_PATH, FACTS_PICKLE, EMB_MODEL, TOP_K, PROJECT_ROOT
 from utils.utils import normalize
 from graph.graph_queries import find_entity_nodes_by_name, get_direct_relations
 
@@ -103,36 +103,43 @@ class Retriever:
             # Print environment information for debugging
             print("\n🔍 Environment Information:")
             print(f"Working Directory: {os.getcwd()}")
-            print(f"Project Root: {os.getenv('PROJECT_ROOT', 'Not Set')}")
+            print(f"Project Root: {PROJECT_ROOT}")
             print(f"FAISS Index Path: {FAISS_INDEX_PATH}")
-            print(f"Absolute FAISS Path: {os.path.abspath(FAISS_INDEX_PATH)}\n")
             
-            # Ensure vectorstore directory exists
-            vectorstore_dir = os.path.dirname(FAISS_INDEX_PATH)
-            if not os.path.exists(vectorstore_dir):
-                os.makedirs(vectorstore_dir, exist_ok=True)
-                print(f"📁 Created vectorstore directory at {vectorstore_dir}")
-            
-            # Check if the index exists at absolute or relative path
-            abs_index_path = os.path.abspath(FAISS_INDEX_PATH)
-            rel_index_path = os.path.join("vectorstore", "med_faiss.index")
-            
-            # Determine which path to use
-            index_path = None
+            # First check if the index exists at the configured path
             if os.path.exists(FAISS_INDEX_PATH):
                 index_path = FAISS_INDEX_PATH
-            elif os.path.exists(abs_index_path):
-                index_path = abs_index_path
-            elif os.path.exists(rel_index_path):
-                index_path = rel_index_path
+                print(f"✅ Found index at configured path: {index_path}")
+            else:
+                # Try alternative paths
+                possible_paths = [
+                    os.path.join(PROJECT_ROOT, "vectorstore/med_faiss.index"),
+                    os.path.join(PROJECT_ROOT, "medintel_plus/vectorstore/med_faiss.index"),
+                    os.path.join(os.getcwd(), "vectorstore/med_faiss.index"),
+                    os.path.join(os.getcwd(), "medintel_plus/vectorstore/med_faiss.index"),
+                ]
+                
+                # Try each path
+                for path in possible_paths:
+                    if os.path.exists(path):
+                        index_path = path
+                        print(f"✅ Found index at alternative path: {index_path}")
+                        break
+                else:
+                    index_path = None
             
             if index_path is None:
+                attempted_paths = [
+                    FAISS_INDEX_PATH,
+                    os.path.join(PROJECT_ROOT, "vectorstore/med_faiss.index"),
+                    os.path.join(PROJECT_ROOT, "medintel_plus/vectorstore/med_faiss.index"),
+                    os.path.join(os.getcwd(), "vectorstore/med_faiss.index"),
+                    os.path.join(os.getcwd(), "medintel_plus/vectorstore/med_faiss.index")
+                ]
                 raise RuntimeError(
-                    "FAISS index not found. Attempted paths:\n"
-                    f"1. Config path: {FAISS_INDEX_PATH}\n"
-                    f"2. Absolute path: {abs_index_path}\n"
-                    f"3. Relative path: {rel_index_path}\n\n"
-                    "Please ensure the vectorstore is properly initialized by running:\n"
+                    "FAISS index not found. Attempted paths:\n" +
+                    "\n".join(f"{i+1}. {path}" for i, path in enumerate(attempted_paths)) +
+                    "\n\nPlease ensure the vectorstore is properly initialized by running:\n"
                     "python -m vectorstore.ingest_embeddings"
                 )
             
