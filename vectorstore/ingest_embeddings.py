@@ -31,14 +31,44 @@ def build_faiss():
         fact = f"{r['Drug']} {r['Relation'].replace('_',' ')} {r['Target']}. {r.get('Note','')}"
         facts.append(fact)
         
-    # Initialize model and compute embeddings
-    model = SentenceTransformer(EMB_MODEL)
+    # Initialize model with device handling
+    try:
+        import torch
+        if torch.cuda.is_available():
+            try:
+                device = torch.device("cuda")
+                print("🚀 Using GPU for embeddings generation")
+            except Exception as e:
+                print(f"⚠️ GPU available but failed to initialize: {e}")
+                device = torch.device("cpu")
+                print("🔄 Falling back to CPU")
+        else:
+            device = torch.device("cpu")
+            print("💻 Using CPU for embeddings generation")
+
+        model = SentenceTransformer(EMB_MODEL, device=device)
+    except Exception as e:
+        print(f"⚠️ Failed to initialize model with device selection: {e}")
+        print("🔄 Attempting CPU initialization")
+        model = SentenceTransformer(EMB_MODEL, device='cpu')
+
     print("⏳ Computing embeddings...")
-    embeddings = model.encode(facts, show_progress_bar=True, convert_to_numpy=True)
-    dim = embeddings.shape[1]
-    index = faiss.IndexFlatL2(dim)
-    index.add(np.array(embeddings))
-    faiss.write_index(index, FAISS_INDEX_PATH)
+    try:
+        embeddings = model.encode(facts, show_progress_bar=True, convert_to_numpy=True)
+        dim = embeddings.shape[1]
+        index = faiss.IndexFlatL2(dim)
+        
+        # Add vectors to index
+        index.add(np.array(embeddings))
+        
+        # Save index
+        print(f"💾 Saving FAISS index with {len(facts)} vectors of dimension {dim}")
+        faiss.write_index(index, FAISS_INDEX_PATH)
+    except Exception as e:
+        raise RuntimeError(
+            f"Failed to compute embeddings or save FAISS index: {str(e)}\n"
+            "This could be due to insufficient memory or disk space."
+        ) from e
     with open(FACTS_PICKLE, "wb") as f:
         pickle.dump(facts, f)
     print(f"✅ FAISS index saved to {FAISS_INDEX_PATH} with {len(facts)} facts.")

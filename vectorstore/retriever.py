@@ -22,13 +22,27 @@ def compress_snippets(snippets, max_chars=1500):
 class Retriever:
     def __init__(self):
         try:
-            # Initialize model on CPU first to avoid meta tensor errors
-            self.model = SentenceTransformer(EMB_MODEL, device='cpu')
-
-            # Move to GPU if available
+            # Initialize device
             import torch
             if torch.cuda.is_available():
-                self.model = self.model.to(torch.device("cuda"))
+                try:
+                    device = torch.device("cuda")
+                    print("🚀 Using GPU for inference")
+                except Exception as e:
+                    print(f"⚠️ GPU available but failed to initialize: {e}")
+                    device = torch.device("cpu")
+                    print("🔄 Falling back to CPU")
+            else:
+                device = torch.device("cpu")
+                print("💻 Using CPU for inference")
+
+            # Initialize model
+            try:
+                self.model = SentenceTransformer(EMB_MODEL, device=device)
+            except Exception as e:
+                print(f"⚠️ Failed to initialize model on {device}: {e}")
+                print("🔄 Attempting CPU initialization")
+                self.model = SentenceTransformer(EMB_MODEL, device='cpu')
                 
             # Check if index and facts exist
             if not os.path.exists(FAISS_INDEX_PATH) or not os.path.exists(FACTS_PICKLE):
@@ -74,13 +88,30 @@ class Retriever:
 
 
     def semantic_topk(self, query, top_k=TOP_K):
-        q_emb = self.model.encode([query], convert_to_numpy=True)
-        D,I = self.index.search(np.array(q_emb), top_k)
-        results=[]
-        for score, idx in zip(D[0], I[0]):
-            if idx < len(self.facts):
-                results.append({"score": float(score), "text": self.facts[idx]})
-        return results
+        try:
+            # Generate query embedding
+            q_emb = self.model.encode([query], convert_to_numpy=True)
+            
+            # Ensure embedding is in the correct format
+            q_emb = np.array(q_emb).astype('float32')
+            
+            # Perform search
+            D, I = self.index.search(q_emb, top_k)
+            
+            # Format results
+            results = []
+            for score, idx in zip(D[0], I[0]):
+                if idx < len(self.facts):
+                    results.append({
+                        "score": float(score), 
+                        "text": self.facts[idx]
+                    })
+            return results
+            
+        except Exception as e:
+            print(f"⚠️ Semantic search failed: {str(e)}")
+            print("🔄 Falling back to keyword search")
+            return [{"score": 1.0, "text": t} for t in self.keyword_fallback(query)]
 
     def keyword_fallback(self, query):
         # return facts that contain any token (very simple)
